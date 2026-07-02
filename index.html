@@ -217,10 +217,10 @@
       <section class="card section" id="treemap">
         <div class="section-head"><h2>成果名称获奖矩形树图</h2></div>
         <div class="legend">
-          <span><i class="swatch" style="background:#7CC7E8"></i>评审总数低</span>
-          <span><i class="swatch" style="background:#A58BE6"></i>评审总数中</span>
-          <span><i class="swatch" style="background:#F29A8E"></i>评审总数高</span>
-          <span>面积=该成果名称评审总数；评审总数不同，颜色不同</span>
+          <span><i class="swatch" style="background:#7CC7E8"></i>评审分数低</span>
+          <span><i class="swatch" style="background:#A58BE6"></i>评审分数中</span>
+          <span><i class="swatch" style="background:#F29A8E"></i>评审分数高</span>
+          <span>面积=该成果名称评审总数；颜色=最高分</span>
         </div>
         <div class="treemap" id="treemapGrid"></div>
       </section>
@@ -402,9 +402,9 @@
       ];
     }
 
-    function treemapColor(total, minTotal, maxTotal) {
-      const span = Math.max(maxTotal - minTotal, 1);
-      const ratio = (total - minTotal) / span;
+    function treemapColor(score, minScore, maxScore) {
+      const span = Math.max(maxScore - minScore, 1);
+      const ratio = (score - minScore) / span;
       const hue = 198 + ratio * 142;
       const saturation = 48 + ratio * 8;
       const lightness = 60 + ratio * 6;
@@ -418,9 +418,9 @@
         ...row,
         value: Math.max(row.total, 1)
       })).sort((a, b) => b.value - a.value || (b.avgScore || 0) - (a.avgScore || 0));
-      const totals = items.map(item => item.total);
-      const minTotal = Math.min(...totals);
-      const maxTotal = Math.max(...totals, 1);
+      const scores = items.map(item => item.maxScore || item.avgScore || 0).filter(score => score > 0);
+      const minScore = Math.min(...scores);
+      const maxScore = Math.max(...scores, 1);
       const width = 1000;
       const height = Math.max(430, Math.min(660, 360 + items.length * 7));
       const rects = splitTreemap(items, 0, 0, width, height);
@@ -428,7 +428,7 @@
         const reviewLines = treemapReviewLines(item);
         const maxScoreLine = item.maxScore ? `最高分：${item.maxScore}` : "最高分：暂无";
         const tooltip = `${item.title}\n${reviewLines.join("\n")}\n${maxScoreLine}`;
-        const fill = treemapColor(item.total, minTotal, maxTotal);
+        const fill = treemapColor(item.maxScore || item.avgScore || minScore, minScore, maxScore);
         const cx = item.x + item.w / 2;
         const cy = item.y + item.h / 2;
         const labelChars = Math.max(2, Math.floor(item.w / 18));
