@@ -124,12 +124,14 @@ for title, g in name_group:
     total = int(len(g))
     best_award = min(g["奖项"].tolist(), key=lambda a: award_order.get(a, 99))
     avg_score = g["综合最终得分"].dropna().mean()
+    max_score = g["综合最终得分"].dropna().max()
     matrix_rows.append(
         {
             "title": title,
             "total": total,
             "bestAward": best_award,
             "avgScore": None if pd.isna(avg_score) else round(float(avg_score), 2),
+            "maxScore": None if pd.isna(max_score) else round(float(max_score), 2),
             "counts": counts,
             "units": sorted([u for u in g["第一完成单位"].dropna().unique().tolist() if clean_text(u)])[:3],
         }
@@ -547,6 +549,15 @@ html_template = r"""<!doctype html>
       return `${text.slice(0, Math.max(2, maxChars - 1))}…`;
     }
 
+    function treemapReviewLines(item) {
+      const counts = item.counts || {};
+      return [
+        `参与评审：${fmtNum(item.total)}份`,
+        `特等奖${fmtNum(counts["特等奖"] || 0)}份 / 一等奖${fmtNum(counts["一等奖"] || 0)}份 / 二等奖${fmtNum(counts["二等奖"] || 0)}份`,
+        `三等奖${fmtNum(counts["三等奖"] || 0)}份`,
+      ];
+    }
+
     function treemapColor(total, minTotal, maxTotal) {
       const span = Math.max(maxTotal - minTotal, 1);
       const ratio = (total - minTotal) / span;
@@ -570,20 +581,22 @@ html_template = r"""<!doctype html>
       const height = Math.max(430, Math.min(660, 360 + items.length * 7));
       const rects = splitTreemap(items, 0, 0, width, height);
       const body = rects.map((item, index) => {
-        const countsText = awards.filter(a => item.counts[a]).map(a => `${a}${item.counts[a]}`).join(" / ") || "无获奖记录";
-        const tooltip = `${item.title}\n最高奖项：${item.bestAward}\n记录数：${item.total}\n${countsText}${item.avgScore ? `\n均分：${item.avgScore}` : ""}`;
+        const reviewLines = treemapReviewLines(item);
+        const maxScoreLine = item.maxScore ? `最高分：${item.maxScore}` : "最高分：暂无";
+        const tooltip = `${item.title}\n${reviewLines.join("\n")}\n${maxScoreLine}`;
         const fill = treemapColor(item.total, minTotal, maxTotal);
         const cx = item.x + item.w / 2;
         const cy = item.y + item.h / 2;
         const labelChars = Math.max(2, Math.floor(item.w / 18));
         const showTitle = item.w > 70 && item.h > 42;
-        const showMeta = item.w > 120 && item.h > 82;
+        const showMeta = item.w > 150 && item.h > 96;
         return `<g>
           <title>${esc(tooltip)}</title>
           <rect class="treemap-rect" x="${item.x.toFixed(1)}" y="${item.y.toFixed(1)}" width="${Math.max(0, item.w).toFixed(1)}" height="${Math.max(0, item.h).toFixed(1)}" fill="${fill}" />
-          ${showTitle ? `<text class="treemap-label" x="${cx.toFixed(1)}" y="${(showMeta ? cy - 14 : cy).toFixed(1)}">${esc(shortLabel(item.title, labelChars))}</text>` : ""}
-          ${showMeta ? `<text class="treemap-sub" x="${cx.toFixed(1)}" y="${(cy + 11).toFixed(1)}">${esc(item.bestAward)} · ${item.total}项</text>
-          <text class="treemap-sub" x="${cx.toFixed(1)}" y="${(cy + 29).toFixed(1)}">${esc(shortLabel(countsText, labelChars + 6))}</text>` : ""}
+          ${showTitle ? `<text class="treemap-label" x="${cx.toFixed(1)}" y="${(showMeta ? cy - 28 : cy).toFixed(1)}">${esc(shortLabel(item.title, labelChars))}</text>` : ""}
+          ${showMeta ? `<text class="treemap-sub" x="${cx.toFixed(1)}" y="${(cy - 1).toFixed(1)}">${esc(reviewLines[0])}</text>
+          <text class="treemap-sub" x="${cx.toFixed(1)}" y="${(cy + 17).toFixed(1)}">${esc(shortLabel(reviewLines[1], labelChars + 6))}</text>
+          <text class="treemap-sub" x="${cx.toFixed(1)}" y="${(cy + 35).toFixed(1)}">${esc(reviewLines[2])}</text>` : ""}
         </g>`;
       }).join("");
       container.innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="成果名称获奖矩形树图">${body}</svg>`;
