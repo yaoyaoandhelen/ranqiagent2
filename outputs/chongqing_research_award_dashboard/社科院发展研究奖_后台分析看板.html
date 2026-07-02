@@ -116,6 +116,31 @@
     .two-col { grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr); align-items: stretch; }
     .two-col > .card { display: flex; flex-direction: column; }
     .two-col > .card .chart-wrap { flex: 1; display: flex; align-items: center; }
+    .award-summary-card { min-width: 0; }
+    .award-combined {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+      gap: 0;
+      padding: 8px 16px 16px;
+    }
+    .award-panel {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+    .award-panel + .award-panel { border-left: 1px solid var(--border); padding-left: 16px; margin-left: 16px; }
+    .award-panel-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: #0f172a;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .award-panel-title span { color: var(--muted); font-size: 12px; font-weight: 600; }
+    .award-panel .chart-wrap { padding: 0; display: flex; align-items: center; }
     .three-col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .chart-wrap { padding: 10px 16px 14px; min-width: 0; overflow: hidden; }
     .award-pie { display: block; width: 100%; min-width: 0; }
@@ -154,6 +179,8 @@
       .sidebar { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--border); }
       .nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .kpis, .two-col, .three-col { grid-template-columns: 1fr; }
+      .award-combined { grid-template-columns: 1fr; gap: 16px; }
+      .award-panel + .award-panel { border-left: 0; border-top: 1px solid var(--border); padding-left: 0; padding-top: 16px; margin-left: 0; }
       .award-activity { grid-column: span 1; }
       .topbar { flex-direction: column; }
       .toolbar { justify-content: flex-start; }
@@ -188,14 +215,19 @@
 
       <section class="grid kpis" id="kpis"></section>
 
-      <section class="grid two-col section">
-        <div class="card">
-          <div class="section-head"><h2>奖项占比与数量</h2><span id="awardTotalNote">本次评审作品总量：--份</span></div>
-          <div class="chart-wrap"><svg class="award-pie" id="awardPie" viewBox="0 0 520 200" width="100%" height="200" role="img" aria-label="奖项占比与数量饼图"></svg></div>
-        </div>
-        <div class="card">
-          <div class="section-head"><h2>奖项结构</h2><span>特等奖本次未产生</span></div>
-          <div class="chart-wrap"><svg id="donut" viewBox="0 0 420 200" width="100%" height="200" role="img" aria-label="奖项结构环形图"></svg></div>
+      <section class="section">
+        <div class="card award-summary-card">
+          <div class="section-head"><h2>奖项占比与结构</h2><span id="awardTotalNote">本次评审作品总量：--份</span></div>
+          <div class="award-combined">
+            <div class="award-panel">
+              <div class="award-panel-title">奖项占比与数量<span>按 120 份统计</span></div>
+              <div class="chart-wrap"><svg class="award-pie" id="awardPie" viewBox="0 0 520 200" width="100%" height="200" role="img" aria-label="奖项占比与数量饼图"></svg></div>
+            </div>
+            <div class="award-panel">
+              <div class="award-panel-title">奖项结构<span>特等奖本次未产生</span></div>
+              <div class="chart-wrap"><svg id="donut" viewBox="0 0 420 200" width="100%" height="200" role="img" aria-label="奖项结构环形图"></svg></div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -217,10 +249,10 @@
       <section class="card section" id="treemap">
         <div class="section-head"><h2>成果名称获奖矩形树图</h2></div>
         <div class="legend">
-          <span><i class="swatch" style="background:#7CC7E8"></i>评审分数低</span>
-          <span><i class="swatch" style="background:#A58BE6"></i>评审分数中</span>
-          <span><i class="swatch" style="background:#F29A8E"></i>评审分数高</span>
-          <span>面积=该成果名称评审总数；颜色=最高分</span>
+          <span><i class="swatch" style="background:#7CC7E8"></i>评审份数低</span>
+          <span><i class="swatch" style="background:#A58BE6"></i>评审份数中</span>
+          <span><i class="swatch" style="background:#F29A8E"></i>评审份数高</span>
+          <span>面积=该成果名称评审总数；颜色=评审份数</span>
         </div>
         <div class="treemap" id="treemapGrid"></div>
       </section>
@@ -402,9 +434,9 @@
       ];
     }
 
-    function treemapColor(score, minScore, maxScore) {
-      const span = Math.max(maxScore - minScore, 1);
-      const ratio = (score - minScore) / span;
+    function treemapColor(total, minTotal, maxTotal) {
+      const span = Math.max(maxTotal - minTotal, 1);
+      const ratio = (total - minTotal) / span;
       const hue = 198 + ratio * 142;
       const saturation = 48 + ratio * 8;
       const lightness = 60 + ratio * 6;
@@ -418,9 +450,9 @@
         ...row,
         value: Math.max(row.total, 1)
       })).sort((a, b) => b.value - a.value || (b.avgScore || 0) - (a.avgScore || 0));
-      const scores = items.map(item => item.maxScore || item.avgScore || 0).filter(score => score > 0);
-      const minScore = Math.min(...scores);
-      const maxScore = Math.max(...scores, 1);
+      const totals = items.map(item => item.total);
+      const minTotal = Math.min(...totals);
+      const maxTotal = Math.max(...totals, 1);
       const width = 1000;
       const height = Math.max(430, Math.min(660, 360 + items.length * 7));
       const rects = splitTreemap(items, 0, 0, width, height);
@@ -428,7 +460,7 @@
         const reviewLines = treemapReviewLines(item);
         const maxScoreLine = item.maxScore ? `最高分：${item.maxScore}` : "最高分：暂无";
         const tooltip = `${item.title}\n${reviewLines.join("\n")}\n${maxScoreLine}`;
-        const fill = treemapColor(item.maxScore || item.avgScore || minScore, minScore, maxScore);
+        const fill = treemapColor(item.total, minTotal, maxTotal);
         const cx = item.x + item.w / 2;
         const cy = item.y + item.h / 2;
         const labelChars = Math.max(2, Math.floor(item.w / 18));
