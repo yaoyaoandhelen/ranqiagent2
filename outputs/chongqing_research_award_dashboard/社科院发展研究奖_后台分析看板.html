@@ -113,7 +113,9 @@
     }
     .section-head h2 { margin: 0; font-size: 16px; }
     .section-head span { color: var(--muted); font-size: 12px; }
-    .two-col { grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr); align-items: start; }
+    .two-col { grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr); align-items: stretch; }
+    .two-col > .card { display: flex; flex-direction: column; }
+    .two-col > .card .chart-wrap { flex: 1; display: flex; align-items: center; }
     .three-col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .chart-wrap { padding: 10px 16px 14px; min-width: 0; overflow: hidden; }
     .award-bars { display: grid; gap: 10px; }
@@ -214,9 +216,9 @@
       <section class="card section" id="treemap">
         <div class="section-head"><h2>成果名称获奖矩形树图</h2></div>
         <div class="legend">
-          <span><i class="swatch" style="background:#38BDF8"></i>评审总数低</span>
-          <span><i class="swatch" style="background:#8B5CF6"></i>评审总数中</span>
-          <span><i class="swatch" style="background:#FF7A59"></i>评审总数高</span>
+          <span><i class="swatch" style="background:#7CC7E8"></i>评审总数低</span>
+          <span><i class="swatch" style="background:#A58BE6"></i>评审总数中</span>
+          <span><i class="swatch" style="background:#F29A8E"></i>评审总数高</span>
           <span>面积=该成果名称评审总数；评审总数不同，颜色不同</span>
         </div>
         <div class="treemap" id="treemapGrid"></div>
@@ -375,9 +377,9 @@
     function treemapColor(total, minTotal, maxTotal) {
       const span = Math.max(maxTotal - minTotal, 1);
       const ratio = (total - minTotal) / span;
-      const hue = 198 + ratio * 152;
-      const saturation = 76 + ratio * 6;
-      const lightness = 54 + ratio * 7;
+      const hue = 198 + ratio * 142;
+      const saturation = 48 + ratio * 8;
+      const lightness = 60 + ratio * 6;
       return `hsl(${hue.toFixed(1)} ${saturation.toFixed(1)}% ${lightness.toFixed(1)}%)`;
     }
 
