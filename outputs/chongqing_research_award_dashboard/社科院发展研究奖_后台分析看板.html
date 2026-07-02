@@ -214,12 +214,10 @@
       <section class="card section" id="treemap">
         <div class="section-head"><h2>成果名称获奖矩形树图</h2></div>
         <div class="legend">
-          <span><i class="swatch" style="background:#B779F2"></i>特等奖</span>
-          <span><i class="swatch" style="background:#F9738D"></i>一等奖</span>
-          <span><i class="swatch" style="background:#4BAFEA"></i>二等奖</span>
-          <span><i class="swatch" style="background:#43C7A4"></i>三等奖</span>
-          <span><i class="swatch" style="background:#7C8DA6"></i>未获奖</span>
-          <span>面积=该成果名称评审总数，成果名称评审总数越多，颜色越亮</span>
+          <span><i class="swatch" style="background:#38BDF8"></i>评审总数低</span>
+          <span><i class="swatch" style="background:#8B5CF6"></i>评审总数中</span>
+          <span><i class="swatch" style="background:#FF7A59"></i>评审总数高</span>
+          <span>面积=该成果名称评审总数；评审总数不同，颜色不同</span>
         </div>
         <div class="treemap" id="treemapGrid"></div>
       </section>
@@ -230,7 +228,6 @@
     const data = JSON.parse(document.getElementById("dashboard-data").textContent);
     const awards = ["特等奖", "一等奖", "二等奖", "三等奖", "未获奖"];
     const awardColors = { "特等奖": "#A855F7", "一等奖": "#FF7A59", "二等奖": "#38BDF8", "三等奖": "#34D399", "未获奖": "#94A3B8" };
-    const treemapHues = { "特等奖": [272, 76], "一等奖": [349, 82], "二等奖": [201, 78], "三等奖": [164, 68], "未获奖": [215, 22] };
     data.awardSummary.forEach(item => { item.color = awardColors[item.award] || item.color; });
     const pillClass = { "特等奖": "super", "一等奖": "first", "二等奖": "second", "三等奖": "third", "未获奖": "" };
 
@@ -375,14 +372,13 @@
       return `${text.slice(0, Math.max(2, maxChars - 1))}…`;
     }
 
-    function treemapColor(award, total, minTotal, maxTotal) {
-      const [hue, saturation] = treemapHues[award] || treemapHues["未获奖"];
+    function treemapColor(total, minTotal, maxTotal) {
       const span = Math.max(maxTotal - minTotal, 1);
       const ratio = (total - minTotal) / span;
-      const adjustedHue = hue + (ratio - 0.5) * 8;
-      const adjustedSaturation = saturation - 6 + ratio * 10;
-      const lightness = 45 + ratio * 16;
-      return `hsl(${adjustedHue.toFixed(1)} ${adjustedSaturation.toFixed(1)}% ${lightness.toFixed(1)}%)`;
+      const hue = 198 + ratio * 152;
+      const saturation = 76 + ratio * 6;
+      const lightness = 54 + ratio * 7;
+      return `hsl(${hue.toFixed(1)} ${saturation.toFixed(1)}% ${lightness.toFixed(1)}%)`;
     }
 
     function renderTreemap() {
@@ -401,7 +397,7 @@
       const body = rects.map((item, index) => {
         const countsText = awards.filter(a => item.counts[a]).map(a => `${a}${item.counts[a]}`).join(" / ") || "无获奖记录";
         const tooltip = `${item.title}\n最高奖项：${item.bestAward}\n记录数：${item.total}\n${countsText}${item.avgScore ? `\n均分：${item.avgScore}` : ""}`;
-        const fill = treemapColor(item.bestAward, item.total, minTotal, maxTotal);
+        const fill = treemapColor(item.total, minTotal, maxTotal);
         const cx = item.x + item.w / 2;
         const cy = item.y + item.h / 2;
         const labelChars = Math.max(2, Math.floor(item.w / 18));
