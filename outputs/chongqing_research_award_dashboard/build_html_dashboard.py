@@ -293,6 +293,7 @@ html_template = r"""<!doctype html>
     .two-col > .card .chart-wrap { flex: 1; display: flex; align-items: center; }
     .three-col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .chart-wrap { padding: 10px 16px 14px; min-width: 0; overflow: hidden; }
+    .award-pie { display: block; width: 100%; min-width: 0; }
     .award-bars { display: grid; gap: 10px; }
     .award-row { display: grid; grid-template-columns: 72px 1fr 84px; gap: 12px; align-items: center; }
     .track { height: 26px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
@@ -365,7 +366,7 @@ html_template = r"""<!doctype html>
       <section class="grid two-col section">
         <div class="card">
           <div class="section-head"><h2>奖项占比与数量</h2><span id="awardTotalNote">本次评审作品总量：--份</span></div>
-          <div class="chart-wrap"><div class="award-bars" id="awardBars"></div></div>
+          <div class="chart-wrap"><svg class="award-pie" id="awardPie" viewBox="0 0 520 200" width="100%" height="200" role="img" aria-label="奖项占比与数量饼图"></svg></div>
         </div>
         <div class="card">
           <div class="section-head"><h2>奖项结构</h2><span>特等奖本次未产生</span></div>
@@ -442,16 +443,34 @@ html_template = r"""<!doctype html>
     }
 
     function renderAwardBars() {
-      const max = Math.max(...data.awardSummary.map(x => x.count), 1);
       const reviewTotal = data.awardSummary.reduce((sum, x) => sum + x.count, 0);
       document.getElementById("awardTotalNote").textContent = `本次评审作品总量：${fmtNum(reviewTotal)}份`;
-      document.getElementById("awardBars").innerHTML = data.awardSummary.map(item => `
-        <div class="award-row">
-          <strong>${item.award}</strong>
-          <div class="track"><div class="fill" style="width:${Math.max(item.count / max * 100, item.count ? 4 : 0)}%; background:${item.color}">${fmtPct(item.share)}</div></div>
-          <div class="count">${fmtNum(item.count)} 份</div>
-        </div>
-      `).join("");
+      const svg = document.getElementById("awardPie");
+      const total = reviewTotal || 1;
+      const cx = 128, cy = 100, r = 66, stroke = 30, circumference = 2 * Math.PI * r;
+      let offset = 0;
+      const circles = data.awardSummary.filter(item => item.count > 0).map(item => {
+        const length = item.count / total * circumference;
+        const circle = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${item.color}" stroke-width="${stroke}" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})" />`;
+        offset += length;
+        return circle;
+      }).join("");
+      const list = data.awardSummary.map((item, index) => {
+        const y = 45 + index * 28;
+        return `<g>
+          <rect x="292" y="${y - 11}" width="10" height="10" rx="3" fill="${item.color}" />
+          <text x="310" y="${y - 2}" font-size="12" font-weight="700" fill="#334155">${item.award}</text>
+          <text x="382" y="${y - 2}" font-size="12" fill="#64748b">${fmtPct(item.share)}</text>
+          <text x="462" y="${y - 2}" text-anchor="end" font-size="12" font-weight="800" fill="#0f172a">${fmtNum(item.count)}份</text>
+        </g>`;
+      }).join("");
+      svg.innerHTML = `
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#f1f5f9" stroke-width="${stroke}" />
+        ${circles}
+        <text x="${cx}" y="${cy - 8}" text-anchor="middle" font-size="26" font-weight="800" fill="#0f172a">${fmtNum(reviewTotal)}</text>
+        <text x="${cx}" y="${cy + 18}" text-anchor="middle" font-size="12" fill="#64748b">评审总量</text>
+        ${list}
+      `;
     }
 
     function renderDonut() {
