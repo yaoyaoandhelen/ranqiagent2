@@ -152,6 +152,15 @@ top_works = top_awards[
     ["编号", "成果名称", "奖项", "小组评分", "大会评分", "综合最终得分"]
 ].to_dict(orient="records")
 
+reviewed_works = merged[
+    ["编号", "成果名称", "奖项", "第一完成单位", "成果形式", "所属领域", "小组评分", "大会评分", "综合最终得分"]
+].copy()
+reviewed_works["奖项序"] = reviewed_works["奖项"].map(award_order).fillna(99)
+reviewed_works = reviewed_works.sort_values(
+    ["奖项序", "综合最终得分", "编号"], ascending=[True, False, True]
+).drop(columns=["奖项序"])
+reviewed_works = reviewed_works.where(pd.notnull(reviewed_works), None).to_dict(orient="records")
+
 payload = {
     "meta": {
         "totalAssumption": TOTAL_WORKS_ASSUMPTION,
@@ -166,6 +175,7 @@ payload = {
     "fieldStats": field_stats,
     "matrixRows": matrix_rows,
     "topWorks": top_works,
+    "reviewedWorks": reviewed_works,
 }
 
 (OUTPUT_DIR / "award_dashboard_data.json").write_text(
@@ -361,8 +371,8 @@ html_template = r"""<!doctype html>
     }
     .modal-backdrop.open { display: flex; }
     .modal {
-      width: min(760px, 100%);
-      max-height: min(720px, calc(100vh - 48px));
+      width: min(1040px, 100%);
+      max-height: min(780px, calc(100vh - 48px));
       overflow: auto;
       background: #fff;
       border: 1px solid var(--border);
@@ -469,11 +479,32 @@ html_template = r"""<!doctype html>
     const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[ch]));
     const sourceByAward = { "特等奖": "业务设定：本次未产生特等奖", "一等奖": "研究成果_评审结果_一等奖.xlsx", "二等奖": "研究成果_评审结果_二等奖.xlsx", "三等奖": "研究成果_评审结果_三等奖.xlsx", "未获奖": "成果导入表中未匹配到一二三等奖结果的记录，并按 120 份总量补足" };
 
+    function reviewedWorkRows(filterFn = () => true) {
+      return (data.reviewedWorks || []).filter(filterFn).map(work => [
+        work["编号"] || "",
+        work["成果名称"] || "",
+        work["奖项"] || "",
+        work["第一完成单位"] || "",
+        work["成果形式"] || "",
+        work["所属领域"] || "",
+        work["综合最终得分"] ?? "",
+      ]);
+    }
+
     function countRows(counts, denominator) {
       return awards.map(award => {
         const count = counts[award] || 0;
         return [award, `${fmtNum(count)} 份`, denominator ? fmtPct(count / denominator) : "0.0%"];
       });
+    }
+
+    function noAwardWorkRows(expectedCount) {
+      const rows = reviewedWorkRows(work => work["奖项"] === "未获奖");
+      const gap = Math.max(expectedCount - rows.length, 0);
+      for (let i = 1; i <= gap; i += 1) {
+        rows.push([`待补充${i}`, "未导入明细", "未获奖", "", "", "", ""]);
+      }
+      return rows;
     }
 
     function tableHtml(headers, rows) {
@@ -490,7 +521,8 @@ html_template = r"""<!doctype html>
 
     function openDetail(title, metrics, note, headers, rows) {
       document.getElementById("detailTitle").textContent = title;
-      document.getElementById("detailBody").innerHTML = `${metricHtml(metrics)}<p class="detail-note">${esc(note)}</p>${tableHtml(headers, rows)}`;
+      const noteHtml = note ? `<p class="detail-note">${esc(note)}</p>` : "";
+      document.getElementById("detailBody").innerHTML = `${metricHtml(metrics)}${noteHtml}${tableHtml(headers, rows)}`;
       const modal = document.getElementById("detailModal");
       modal.classList.add("open");
       modal.setAttribute("aria-hidden", "false");
@@ -510,33 +542,26 @@ html_template = r"""<!doctype html>
       if (type === "total") {
         openDetail("评审作品总量明细", [
           ["评审作品总量", `${fmtNum(total)} 份`],
-          ["导入表可追踪", `${fmtNum(data.meta.importedRows)} 份`],
-          ["获奖结果匹配", `${fmtNum(data.meta.matchedImportedAwards)} 份`],
-        ], "评审作品总量按业务假设使用 120 份；导入表可追踪数量来自成果导入表。", ["项目", "数量", "说明"], [
-          ["评审作品总量", `${fmtNum(total)} 份`, "用于计算所有奖项占比的总基数"],
-          ["导入表可追踪", `${fmtNum(data.meta.importedRows)} 份`, "成果导入.xlsx 中可读取记录数"],
-          ["未匹配奖项编号", `${fmtNum((data.meta.unmatchedAwardIds || []).length)} 个`, "获奖表中未能在导入表匹配的编号"],
-        ]);
+          ["本次参与评审作品数", `${fmtNum(data.meta.importedRows)} 份`],
+          ["获奖总数", `${fmtNum(data.meta.matchedImportedAwards)} 份`],
+        ], "", ["编号", "成果名称", "奖项", "第一完成单位", "成果形式", "所属领域", "综合最终得分"], reviewedWorkRows());
         return;
       }
       if (type === "awarded") {
-        const rows = data.awardSummary.filter(x => x.award !== "未获奖").map(item => [item.award, `${fmtNum(item.count)} 份`, fmtPct(item.share), sourceByAward[item.award]]);
+        const rows = reviewedWorkRows(work => work["奖项"] && work["奖项"] !== "未获奖");
         openDetail("获奖总量明细", [
           ["获奖总量", `${fmtNum(awarded)} 份`],
           ["总体获奖率", fmtPct(awarded / total)],
           ["总基数", `${fmtNum(total)} 份`],
-        ], "获奖总量为特等奖、一等奖、二等奖、三等奖数量之和。", ["奖项", "数量", "占比", "数据来源"], rows);
+        ], "", ["编号", "成果名称", "奖项", "第一完成单位", "成果形式", "所属领域", "综合最终得分"], rows);
         return;
       }
+      const rows = noAwardWorkRows(noAward);
       openDetail("未获奖数量明细", [
         ["未获奖数量", `${fmtNum(noAward)} 份`],
         ["未获奖占比", fmtPct(noAward / total)],
         ["总基数", `${fmtNum(total)} 份`],
-      ], "未获奖数量按评审作品总量减去获奖总量计算。", ["项目", "数量", "计算口径"], [
-        ["评审作品总量", `${fmtNum(total)} 份`, "业务假设总量"],
-        ["获奖总量", `${fmtNum(awarded)} 份`, "特等奖 + 一等奖 + 二等奖 + 三等奖"],
-        ["未获奖数量", `${fmtNum(noAward)} 份`, "评审作品总量 - 获奖总量"],
-      ]);
+      ], "", ["编号", "成果名称", "奖项", "第一完成单位", "成果形式", "所属领域", "综合最终得分"], rows);
     }
 
     function showAwardDetail(award) {
@@ -604,7 +629,7 @@ html_template = r"""<!doctype html>
       const awarded = data.meta.awardedTotal;
       const noAward = Math.max(total - awarded, 0);
       const cards = [
-        ["评审作品总量", fmtNum(total), `导入表可追踪 ${fmtNum(imported)} 份`, "total"],
+        ["评审作品总量", fmtNum(total), `参与评审 ${fmtNum(imported)} 份`, "total"],
         ["获奖总量", fmtNum(awarded), `总体获奖率 ${fmtPct(awarded / total)}`, "awarded"],
         ["未获奖数量", fmtNum(noAward), `占比 ${fmtPct(noAward / total)}`, "noAward"],
       ];
