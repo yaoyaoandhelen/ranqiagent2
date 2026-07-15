@@ -322,10 +322,16 @@
       return rows;
     }
 
+    function rowsByGroup(kind, name) {
+      const field = { unitBars: "第一完成单位", formBars: "成果形式", fieldBars: "所属领域" }[kind];
+      return reviewedWorkRows(work => field && work[field] === name);
+    }
+
     function tableHtml(headers, rows) {
-      return `<div class="detail-table"><table><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(row =>
+      const body = rows.length ? rows.map(row =>
         `<tr>${row.map(cell => `<td>${esc(cell)}</td>`).join("")}</tr>`
-      ).join("")}</tbody></table></div>`;
+      ).join("") : `<tr><td colspan="${headers.length}">暂无明细</td></tr>`;
+      return `<div class="detail-table"><table><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>`;
     }
 
     function metricHtml(items) {
@@ -381,22 +387,21 @@
 
     function showAwardDetail(award) {
       const item = data.awardSummary.find(x => x.award === award) || { count: 0, share: 0 };
-      const works = data.topWorks.filter(work => work["奖项"] === award).slice(0, 8);
-      const rows = works.length ? works.map(work => [work["编号"], work["成果名称"], work["综合最终得分"]]) : [[award, `${fmtNum(item.count)} 份`, sourceByAward[award]]];
+      const rows = reviewedWorkRows(work => work["奖项"] === award);
       openDetail(`${award}明细`, [
         [award, `${fmtNum(item.count)} 份`],
         ["占总量比例", fmtPct(item.share)],
         ["总基数", `${fmtNum(data.meta.totalAssumption)} 份`],
-      ], `数据来源：${sourceByAward[award]}。${works.length ? "下方展示当前嵌入数据中的高分成果记录。" : "当前页面嵌入数据未包含该奖项的逐条成果清单，展示汇总口径。"}`, works.length ? ["编号", "成果名称", "综合最终得分"] : ["奖项", "数量", "数据来源"], rows);
+      ], "", ["编号", "成果名称", "奖项", "第一完成单位", "成果形式", "所属领域", "综合最终得分"], rows);
     }
 
     function showAwardOverview() {
-      const rows = data.awardSummary.map(item => [item.award, `${fmtNum(item.count)} 份`, fmtPct(item.share), sourceByAward[item.award]]);
+      const rows = reviewedWorkRows();
       openDetail("奖项分布明细", [
         ["评审作品总量", `${fmtNum(data.meta.totalAssumption)} 份`],
         ["获奖总量", `${fmtNum(data.meta.awardedTotal)} 份`],
         ["总体获奖率", fmtPct(data.meta.awardedTotal / data.meta.totalAssumption)],
-      ], "奖项分布按本次评审作品总量 120 份为基数统计。", ["奖项", "数量", "占比", "数据来源"], rows);
+      ], "", ["编号", "成果名称", "奖项", "第一完成单位", "成果形式", "所属领域", "综合最终得分"], rows);
     }
 
     function showRankModuleDetail(kind) {
@@ -418,24 +423,24 @@
         ["展示条目", `${fmtNum(rows.length)} 项`],
         ["统计字段", fieldName],
         ["排序规则", "按获奖数"],
-      ], `该模块按成果导入表的${fieldName}字段分组，并合并最终奖项结果统计。`, [fieldName, "申报数", "获奖数", "获奖率", "一/二/三等奖"], detailRows);
+      ], "", [fieldName, "申报数", "获奖数", "获奖率", "一/二/三等奖"], detailRows);
     }
 
     function showGroupDetail(kind, index) {
       const config = {
-        unitBars: ["单位获奖数量排名", data.unitStats, "按成果导入表的第一完成单位分组统计"],
-        formBars: ["成果形式获奖排名", data.formStats, "按成果导入表的成果形式分组统计"],
-        fieldBars: ["所属领域获奖排名", data.fieldStats, "按成果导入表的所属领域分组统计"],
+        unitBars: ["单位获奖数量排名", data.unitStats],
+        formBars: ["成果形式获奖排名", data.formStats],
+        fieldBars: ["所属领域获奖排名", data.fieldStats],
       }[kind];
       if (!config) return;
-      const [title, rows, note] = config;
+      const [title, rows] = config;
       const row = rows[index];
       if (!row) return;
       openDetail(`${title}：${row.name}`, [
         ["申报数", `${fmtNum(row.submitted)} 份`],
         ["获奖数", `${fmtNum(row.awarded)} 份`],
         ["获奖率", fmtPct(row.rate)],
-      ], note, ["奖项", "数量", "占该组比例"], countRows(row.counts, row.submitted));
+      ], "", ["编号", "成果名称", "奖项", "第一完成单位", "成果形式", "所属领域", "综合最终得分"], rowsByGroup(kind, row.name));
     }
 
     function renderKpis() {
