@@ -390,22 +390,6 @@ html_template = r"""<!doctype html>
 
       <section class="grid kpis" id="kpis"></section>
 
-      <section class="section">
-        <div class="card award-summary-card">
-          <div class="section-head"><span id="awardTotalNote">本次评审作品总量：--份</span></div>
-          <div class="award-combined">
-            <div class="award-panel">
-              <div class="award-panel-title">奖项占比与数量<span>按 120 份统计</span></div>
-              <div class="chart-wrap"><svg class="award-pie" id="awardPie" viewBox="0 0 520 200" width="100%" height="200" role="img" aria-label="奖项占比与数量饼图"></svg></div>
-            </div>
-            <div class="award-panel">
-              <div class="award-panel-title">奖项结构<span>特等奖本次未产生</span></div>
-              <div class="chart-wrap"><svg id="donut" viewBox="0 0 420 200" width="100%" height="200" role="img" aria-label="奖项结构环形图"></svg></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section class="grid three-col section" id="units">
         <div class="card">
           <div class="section-head"><h2>单位获奖数量排名</h2></div>
@@ -644,8 +628,6 @@ html_template = r"""<!doctype html>
 
     function init() {
       renderKpis();
-      renderAwardBars();
-      renderDonut();
       renderStackBars("unitBars", data.unitStats);
       renderStackBars("formBars", data.formStats);
       renderStackBars("fieldBars", data.fieldStats);
