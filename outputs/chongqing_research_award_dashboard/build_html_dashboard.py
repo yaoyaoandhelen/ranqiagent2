@@ -392,7 +392,7 @@ html_template = r"""<!doctype html>
 
       <section class="section">
         <div class="card award-summary-card">
-          <div class="section-head"><h2>奖项占比与结构</h2><span id="awardTotalNote">本次评审作品总量：--份</span></div>
+          <div class="section-head"><span id="awardTotalNote">本次评审作品总量：--份</span></div>
           <div class="award-combined">
             <div class="award-panel">
               <div class="award-panel-title">奖项占比与数量<span>按 120 份统计</span></div>
@@ -408,28 +408,17 @@ html_template = r"""<!doctype html>
 
       <section class="grid three-col section" id="units">
         <div class="card">
-          <div class="section-head"><h2>第一完成单位获奖情况</h2><span>按获奖数排序</span></div>
+          <div class="section-head"><h2>单位获奖数量排名</h2></div>
           <div class="chart-wrap"><div class="bars" id="unitBars"></div></div>
         </div>
         <div class="card" id="forms">
-          <div class="section-head"><h2>成果形式获奖情况</h2><span>按获奖数排序</span></div>
+          <div class="section-head"><h2>成果形式获奖排名</h2></div>
           <div class="chart-wrap"><div class="bars" id="formBars"></div></div>
         </div>
         <div class="card">
-          <div class="section-head"><h2>所属领域获奖情况</h2><span>按获奖数排序</span></div>
+          <div class="section-head"><h2>所属领域获奖排名</h2></div>
           <div class="chart-wrap"><div class="bars" id="fieldBars"></div></div>
         </div>
-      </section>
-
-      <section class="card section" id="treemap">
-        <div class="section-head"><h2>成果名称获奖矩形树图</h2></div>
-        <div class="legend">
-          <span><i class="swatch" style="background:#7CC7E8"></i>评审份数低</span>
-          <span><i class="swatch" style="background:#A58BE6"></i>评审份数中</span>
-          <span><i class="swatch" style="background:#F29A8E"></i>评审份数高</span>
-          <span>面积=该成果名称评审总数；颜色=评审份数</span>
-        </div>
-        <div class="treemap" id="treemapGrid"></div>
       </section>
 
     </main>
@@ -466,7 +455,7 @@ html_template = r"""<!doctype html>
       document.getElementById("kpis").innerHTML = cards.map(([label, value, note]) =>
         `<article class="card kpi"><label>${label}</label><strong>${value}</strong><small>${note}</small></article>`
       ).join("") + `<article class="card award-activity">
-        <div class="award-activity-head"><label>奖项活动情况</label></div>
+        <div class="award-activity-head"><label>奖项分布</label></div>
         <div class="award-mini-grid">${awardActivity}</div>
       </article>`;
       document.getElementById("metaText").innerHTML = `<div class="award-tags">${awards.map(award =>
@@ -660,8 +649,6 @@ html_template = r"""<!doctype html>
       renderStackBars("unitBars", data.unitStats);
       renderStackBars("formBars", data.formStats);
       renderStackBars("fieldBars", data.fieldStats);
-      renderTreemap();
-      window.addEventListener("resize", renderTreemap);
     }
     init();
   </script>
