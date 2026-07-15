@@ -254,6 +254,9 @@ html_template = r"""<!doctype html>
       box-shadow: var(--shadow);
       min-width: 0;
     }
+    .clickable { cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+    .clickable:hover { border-color: #93c5fd; box-shadow: 0 12px 30px rgba(29, 78, 216, 0.14); transform: translateY(-1px); }
+    .clickable:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
     .kpi { padding: 16px; }
     .kpi label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 8px; }
     .kpi strong { font-size: 26px; line-height: 1; }
@@ -286,6 +289,7 @@ html_template = r"""<!doctype html>
       display: flex; justify-content: space-between; gap: 12px; align-items: center;
       padding: 16px 16px 0;
     }
+    .section-head.clickable { border-radius: 8px; padding-bottom: 8px; }
     .section-head h2 { margin: 0; font-size: 16px; }
     .section-head span { color: var(--muted); font-size: 12px; }
     .two-col { grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr); align-items: stretch; }
@@ -326,6 +330,7 @@ html_template = r"""<!doctype html>
     .count { text-align: right; font-variant-numeric: tabular-nums; }
     .bars { display: grid; gap: 10px; }
     .bar-row { display: grid; grid-template-columns: minmax(92px, 1fr) minmax(96px, 2fr) 58px; gap: 10px; align-items: center; }
+    .bar-row.clickable { border-radius: 6px; padding: 3px 4px; margin: -3px -4px; }
     .bar-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
     .bar-track { height: 22px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
     .bar-fill { height: 100%; background: var(--brand); border-radius: 3px; }
@@ -349,6 +354,41 @@ html_template = r"""<!doctype html>
     .legend { display: flex; gap: 10px; flex-wrap: wrap; padding: 0 16px 14px; }
     .legend span { color: var(--muted); font-size: 12px; display: inline-flex; align-items: center; gap: 6px; }
     .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 20;
+      display: none; align-items: center; justify-content: center;
+      padding: 24px; background: rgba(15, 23, 42, .28);
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: min(760px, 100%);
+      max-height: min(720px, calc(100vh - 48px));
+      overflow: auto;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 24px 70px rgba(15, 23, 42, .24);
+    }
+    .modal-head {
+      position: sticky; top: 0; z-index: 1;
+      display: flex; justify-content: space-between; align-items: center; gap: 16px;
+      padding: 16px 18px; background: #fff; border-bottom: 1px solid var(--border);
+    }
+    .modal-head h3 { margin: 0; font-size: 18px; }
+    .modal-close {
+      border: 1px solid var(--border); background: #fff; color: #334155;
+      width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 18px;
+    }
+    .modal-body { padding: 16px 18px 18px; }
+    .detail-note { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 0 0 12px; }
+    .detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .detail-metric { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: #f8fafc; }
+    .detail-metric span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+    .detail-metric strong { font-size: 20px; }
+    .detail-table { width: 100%; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .detail-table table { width: 100%; border-collapse: collapse; }
+    .detail-table th, .detail-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .detail-table tr:last-child td { border-bottom: 0; }
     @media (max-width: 1100px) {
       .shell { grid-template-columns: 1fr; }
       .sidebar { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--border); }
@@ -366,6 +406,7 @@ html_template = r"""<!doctype html>
       .toolbar, select, input { width: 100%; }
       .award-mini-grid { grid-template-columns: 1fr 1fr; }
       .treemap { padding: 10px 12px 14px; }
+      .detail-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -392,20 +433,29 @@ html_template = r"""<!doctype html>
 
       <section class="grid three-col section" id="units">
         <div class="card">
-          <div class="section-head"><h2>单位获奖数量排名</h2></div>
+          <div class="section-head clickable" role="button" tabindex="0" onclick="showRankModuleDetail('unitBars')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showRankModuleDetail('unitBars')}"><h2>单位获奖数量排名</h2></div>
           <div class="chart-wrap"><div class="bars" id="unitBars"></div></div>
         </div>
         <div class="card" id="forms">
-          <div class="section-head"><h2>成果形式获奖排名</h2></div>
+          <div class="section-head clickable" role="button" tabindex="0" onclick="showRankModuleDetail('formBars')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showRankModuleDetail('formBars')}"><h2>成果形式获奖排名</h2></div>
           <div class="chart-wrap"><div class="bars" id="formBars"></div></div>
         </div>
         <div class="card">
-          <div class="section-head"><h2>所属领域获奖排名</h2></div>
+          <div class="section-head clickable" role="button" tabindex="0" onclick="showRankModuleDetail('fieldBars')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showRankModuleDetail('fieldBars')}"><h2>所属领域获奖排名</h2></div>
           <div class="chart-wrap"><div class="bars" id="fieldBars"></div></div>
         </div>
       </section>
 
     </main>
+  </div>
+  <div class="modal-backdrop" id="detailModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+      <div class="modal-head">
+        <h3 id="detailTitle">明细</h3>
+        <button class="modal-close" type="button" id="detailClose" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body" id="detailBody"></div>
+    </div>
   </div>
   <script>
     const data = JSON.parse(document.getElementById("dashboard-data").textContent);
@@ -417,6 +467,136 @@ html_template = r"""<!doctype html>
     const fmtPct = v => `${(v * 100).toFixed(1)}%`;
     const fmtNum = v => Number(v || 0).toLocaleString("zh-CN");
     const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[ch]));
+    const sourceByAward = { "特等奖": "业务设定：本次未产生特等奖", "一等奖": "研究成果_评审结果_一等奖.xlsx", "二等奖": "研究成果_评审结果_二等奖.xlsx", "三等奖": "研究成果_评审结果_三等奖.xlsx", "未获奖": "成果导入表中未匹配到一二三等奖结果的记录，并按 120 份总量补足" };
+
+    function countRows(counts, denominator) {
+      return awards.map(award => {
+        const count = counts[award] || 0;
+        return [award, `${fmtNum(count)} 份`, denominator ? fmtPct(count / denominator) : "0.0%"];
+      });
+    }
+
+    function tableHtml(headers, rows) {
+      return `<div class="detail-table"><table><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map(row =>
+        `<tr>${row.map(cell => `<td>${esc(cell)}</td>`).join("")}</tr>`
+      ).join("")}</tbody></table></div>`;
+    }
+
+    function metricHtml(items) {
+      return `<div class="detail-grid">${items.map(([label, value]) =>
+        `<div class="detail-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`
+      ).join("")}</div>`;
+    }
+
+    function openDetail(title, metrics, note, headers, rows) {
+      document.getElementById("detailTitle").textContent = title;
+      document.getElementById("detailBody").innerHTML = `${metricHtml(metrics)}<p class="detail-note">${esc(note)}</p>${tableHtml(headers, rows)}`;
+      const modal = document.getElementById("detailModal");
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+      document.getElementById("detailClose").focus();
+    }
+
+    function closeDetail() {
+      const modal = document.getElementById("detailModal");
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    function showKpiDetail(type) {
+      const total = data.meta.totalAssumption;
+      const awarded = data.meta.awardedTotal;
+      const noAward = Math.max(total - awarded, 0);
+      if (type === "total") {
+        openDetail("评审作品总量明细", [
+          ["评审作品总量", `${fmtNum(total)} 份`],
+          ["导入表可追踪", `${fmtNum(data.meta.importedRows)} 份`],
+          ["获奖结果匹配", `${fmtNum(data.meta.matchedImportedAwards)} 份`],
+        ], "评审作品总量按业务假设使用 120 份；导入表可追踪数量来自成果导入表。", ["项目", "数量", "说明"], [
+          ["评审作品总量", `${fmtNum(total)} 份`, "用于计算所有奖项占比的总基数"],
+          ["导入表可追踪", `${fmtNum(data.meta.importedRows)} 份`, "成果导入.xlsx 中可读取记录数"],
+          ["未匹配奖项编号", `${fmtNum((data.meta.unmatchedAwardIds || []).length)} 个`, "获奖表中未能在导入表匹配的编号"],
+        ]);
+        return;
+      }
+      if (type === "awarded") {
+        const rows = data.awardSummary.filter(x => x.award !== "未获奖").map(item => [item.award, `${fmtNum(item.count)} 份`, fmtPct(item.share), sourceByAward[item.award]]);
+        openDetail("获奖总量明细", [
+          ["获奖总量", `${fmtNum(awarded)} 份`],
+          ["总体获奖率", fmtPct(awarded / total)],
+          ["总基数", `${fmtNum(total)} 份`],
+        ], "获奖总量为特等奖、一等奖、二等奖、三等奖数量之和。", ["奖项", "数量", "占比", "数据来源"], rows);
+        return;
+      }
+      openDetail("未获奖数量明细", [
+        ["未获奖数量", `${fmtNum(noAward)} 份`],
+        ["未获奖占比", fmtPct(noAward / total)],
+        ["总基数", `${fmtNum(total)} 份`],
+      ], "未获奖数量按评审作品总量减去获奖总量计算。", ["项目", "数量", "计算口径"], [
+        ["评审作品总量", `${fmtNum(total)} 份`, "业务假设总量"],
+        ["获奖总量", `${fmtNum(awarded)} 份`, "特等奖 + 一等奖 + 二等奖 + 三等奖"],
+        ["未获奖数量", `${fmtNum(noAward)} 份`, "评审作品总量 - 获奖总量"],
+      ]);
+    }
+
+    function showAwardDetail(award) {
+      const item = data.awardSummary.find(x => x.award === award) || { count: 0, share: 0 };
+      const works = data.topWorks.filter(work => work["奖项"] === award).slice(0, 8);
+      const rows = works.length ? works.map(work => [work["编号"], work["成果名称"], work["综合最终得分"]]) : [[award, `${fmtNum(item.count)} 份`, sourceByAward[award]]];
+      openDetail(`${award}明细`, [
+        [award, `${fmtNum(item.count)} 份`],
+        ["占总量比例", fmtPct(item.share)],
+        ["总基数", `${fmtNum(data.meta.totalAssumption)} 份`],
+      ], `数据来源：${sourceByAward[award]}。${works.length ? "下方展示当前嵌入数据中的高分成果记录。" : "当前页面嵌入数据未包含该奖项的逐条成果清单，展示汇总口径。"}`, works.length ? ["编号", "成果名称", "综合最终得分"] : ["奖项", "数量", "数据来源"], rows);
+    }
+
+    function showAwardOverview() {
+      const rows = data.awardSummary.map(item => [item.award, `${fmtNum(item.count)} 份`, fmtPct(item.share), sourceByAward[item.award]]);
+      openDetail("奖项分布明细", [
+        ["评审作品总量", `${fmtNum(data.meta.totalAssumption)} 份`],
+        ["获奖总量", `${fmtNum(data.meta.awardedTotal)} 份`],
+        ["总体获奖率", fmtPct(data.meta.awardedTotal / data.meta.totalAssumption)],
+      ], "奖项分布按本次评审作品总量 120 份为基数统计。", ["奖项", "数量", "占比", "数据来源"], rows);
+    }
+
+    function showRankModuleDetail(kind) {
+      const config = {
+        unitBars: ["单位获奖数量排名", data.unitStats, "第一完成单位"],
+        formBars: ["成果形式获奖排名", data.formStats, "成果形式"],
+        fieldBars: ["所属领域获奖排名", data.fieldStats, "所属领域"],
+      }[kind];
+      if (!config) return;
+      const [title, rows, fieldName] = config;
+      const detailRows = rows.map(row => [
+        row.name,
+        `${fmtNum(row.submitted)} 份`,
+        `${fmtNum(row.awarded)} 份`,
+        fmtPct(row.rate),
+        `${fmtNum(row.counts["一等奖"] || 0)} / ${fmtNum(row.counts["二等奖"] || 0)} / ${fmtNum(row.counts["三等奖"] || 0)}`,
+      ]);
+      openDetail(`${title}总览`, [
+        ["展示条目", `${fmtNum(rows.length)} 项`],
+        ["统计字段", fieldName],
+        ["排序规则", "按获奖数"],
+      ], `该模块按成果导入表的${fieldName}字段分组，并合并最终奖项结果统计。`, [fieldName, "申报数", "获奖数", "获奖率", "一/二/三等奖"], detailRows);
+    }
+
+    function showGroupDetail(kind, index) {
+      const config = {
+        unitBars: ["单位获奖数量排名", data.unitStats, "按成果导入表的第一完成单位分组统计"],
+        formBars: ["成果形式获奖排名", data.formStats, "按成果导入表的成果形式分组统计"],
+        fieldBars: ["所属领域获奖排名", data.fieldStats, "按成果导入表的所属领域分组统计"],
+      }[kind];
+      if (!config) return;
+      const [title, rows, note] = config;
+      const row = rows[index];
+      if (!row) return;
+      openDetail(`${title}：${row.name}`, [
+        ["申报数", `${fmtNum(row.submitted)} 份`],
+        ["获奖数", `${fmtNum(row.awarded)} 份`],
+        ["获奖率", fmtPct(row.rate)],
+      ], note, ["奖项", "数量", "占该组比例"], countRows(row.counts, row.submitted));
+    }
 
     function renderKpis() {
       const total = data.meta.totalAssumption;
@@ -424,21 +604,21 @@ html_template = r"""<!doctype html>
       const awarded = data.meta.awardedTotal;
       const noAward = Math.max(total - awarded, 0);
       const cards = [
-        ["评审作品总量", fmtNum(total), `导入表可追踪 ${fmtNum(imported)} 份`],
-        ["获奖总量", fmtNum(awarded), `总体获奖率 ${fmtPct(awarded / total)}`],
-        ["未获奖数量", fmtNum(noAward), `占比 ${fmtPct(noAward / total)}`],
+        ["评审作品总量", fmtNum(total), `导入表可追踪 ${fmtNum(imported)} 份`, "total"],
+        ["获奖总量", fmtNum(awarded), `总体获奖率 ${fmtPct(awarded / total)}`, "awarded"],
+        ["未获奖数量", fmtNum(noAward), `占比 ${fmtPct(noAward / total)}`, "noAward"],
       ];
       const awardActivity = ["特等奖", "一等奖", "二等奖", "三等奖"].map(award => {
         const item = data.awardSummary.find(x => x.award === award) || { count: 0, share: 0 };
-        return `<div class="award-mini" style="background:${awardColors[award]}">
+        return `<div class="award-mini clickable" role="button" tabindex="0" onclick="event.stopPropagation();showAwardDetail('${award}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();showAwardDetail('${award}')}" style="background:${awardColors[award]}">
           <b>${award}</b>
           <strong>${fmtNum(item.count)}</strong>
           <small>${fmtPct(item.share)}</small>
         </div>`;
       }).join("");
-      document.getElementById("kpis").innerHTML = cards.map(([label, value, note]) =>
-        `<article class="card kpi"><label>${label}</label><strong>${value}</strong><small>${note}</small></article>`
-      ).join("") + `<article class="card award-activity">
+      document.getElementById("kpis").innerHTML = cards.map(([label, value, note, type]) =>
+        `<article class="card kpi clickable" role="button" tabindex="0" onclick="showKpiDetail('${type}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showKpiDetail('${type}')}"><label>${label}</label><strong>${value}</strong><small>${note}</small></article>`
+      ).join("") + `<article class="card award-activity clickable" role="button" tabindex="0" onclick="showAwardOverview()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showAwardOverview()}">
         <div class="award-activity-head"><label>奖项分布</label></div>
         <div class="award-mini-grid">${awardActivity}</div>
       </article>`;
@@ -523,13 +703,13 @@ html_template = r"""<!doctype html>
 
     function renderStackBars(targetId, rows) {
       const max = Math.max(...rows.map(x => x.submitted), 1);
-      document.getElementById(targetId).innerHTML = rows.map(row => {
+      document.getElementById(targetId).innerHTML = rows.map((row, index) => {
         const segments = awards.map(award => {
           const count = row.counts[award] || 0;
           const width = row.submitted ? count / row.submitted * 100 : 0;
           return `<div class="seg" title="${award} ${count}" style="width:${width}%; background:${awardColors[award]}"></div>`;
         }).join("");
-        return `<div class="bar-row">
+        return `<div class="bar-row clickable" role="button" tabindex="0" onclick="showGroupDetail('${targetId}', ${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showGroupDetail('${targetId}', ${index})}">
           <div class="bar-label" title="${esc(row.name)}">${esc(row.name)}</div>
           <div class="stack" style="max-width:${Math.max(row.submitted / max * 100, 8)}%">${segments}</div>
           <div class="count">${row.awarded}/${row.submitted}</div>
@@ -631,6 +811,13 @@ html_template = r"""<!doctype html>
       renderStackBars("unitBars", data.unitStats);
       renderStackBars("formBars", data.formStats);
       renderStackBars("fieldBars", data.fieldStats);
+      document.getElementById("detailClose").addEventListener("click", closeDetail);
+      document.getElementById("detailModal").addEventListener("click", event => {
+        if (event.target.id === "detailModal") closeDetail();
+      });
+      window.addEventListener("keydown", event => {
+        if (event.key === "Escape") closeDetail();
+      });
     }
     init();
   </script>
